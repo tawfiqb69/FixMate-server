@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
 import meRoutes from "./routes/me.js";
+import testRoleRoutes from "./routes/testRoles.js";
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.get("/", (req, res) => {
 
 // API routes
 app.use("/api/me", meRoutes);
+app.use("/api/test-roles", testRoleRoutes);
 
 // 404 handler
 app.use((req, res) => {
