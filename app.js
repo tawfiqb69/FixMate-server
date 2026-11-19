@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
 import meRoutes from "./routes/me.js";
+import servicesRouter from "./routes/services.js";
+
 
 const app = express();
 
@@ -34,6 +36,7 @@ app.get("/", (req, res) => {
 
 // API routes
 app.use("/api/me", meRoutes);
+app.use("/api/services", servicesRouter);
 
 // 404 handler
 app.use((req, res) => {
