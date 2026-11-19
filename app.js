@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
+import meRoutes from "./routes/me.js";
 
 const app = express();
 
@@ -19,6 +20,8 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "OK" });
 });
+
+app.use("/api/me", meRoutes);
 
 // 404 handler
 app.use((req, res) => {
