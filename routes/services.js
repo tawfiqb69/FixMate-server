@@ -111,6 +111,127 @@ router.post("/", verifyToken, verifyTechnician, async (req, res) => {
 });
 
 
+
+// GET /api/services/my  (technician: own services only)
+router.get("/my", verifyToken, verifyTechnician, async (req, res) => {
+  const services = await getDB()
+    .collection("services")
+    .find({ technicianEmail: req.user.email })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  res.json({ success: true, message: "Your services fetched", data: services });
+});
+
+// PATCH /api/services/:id  (technician owner: edit OR toggle availability)
+router.patch("/:id", verifyToken, verifyTechnician, async (req, res) => {
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).json({ success: false, message: "Service not found" });
+  }
+
+  const collection = getDB().collection("services");
+  const service = await collection.findOne({ _id: new ObjectId(id) });
+
+  if (!service) {
+    return res.status(404).json({ success: false, message: "Service not found" });
+  }
+  if (service.technicianEmail !== req.user.email) {
+    return res
+      .status(403)
+      .json({ success: false, message: "You can only change your own service" });
+  }
+
+  const b = req.body || {};
+  const keys = Object.keys(b);
+
+  // Toggle availability only (does NOT reset approval)
+  if (keys.length === 1 && keys[0] === "isAvailable") {
+    if (typeof b.isAvailable !== "boolean") {
+      return res
+        .status(400)
+        .json({ success: false, message: "isAvailable must be true or false" });
+    }
+    await collection.updateOne(
+      { _id: service._id },
+      { $set: { isAvailable: b.isAvailable } }
+    );
+    return res.json({
+      success: true,
+      message: b.isAvailable ? "Service is now available" : "Service is now hidden",
+      data: { _id: service._id, isAvailable: b.isAvailable },
+    });
+  }
+
+  // Full edit (resets approval to pending)
+  const text = (v) => (typeof v === "string" ? v.trim() : "");
+  const updates = {
+    title: text(b.title),
+    category: text(b.category),
+    description: text(b.description),
+    image: text(b.image),
+    estimatedDuration: text(b.estimatedDuration),
+    serviceMode: text(b.serviceMode),
+    serviceArea: text(b.serviceArea),
+    basePrice: Number(b.basePrice),
+  };
+
+  if (
+    !updates.title || !updates.description || !updates.image ||
+    !updates.estimatedDuration || !updates.serviceArea
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields are required" });
+  }
+  if (!CATEGORIES.includes(updates.category)) {
+    return res.status(400).json({ success: false, message: "Invalid category" });
+  }
+  if (!SERVICE_MODES.includes(updates.serviceMode)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid service mode" });
+  }
+  if (!Number.isFinite(updates.basePrice) || updates.basePrice <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Base price must be greater than 0" });
+  }
+
+  updates.approvalStatus = "pending";
+  await collection.updateOne({ _id: service._id }, { $set: updates });
+
+  res.json({
+    success: true,
+    message: "Service updated and waiting for admin approval",
+    data: { ...service, ...updates },
+  });
+});
+
+// DELETE /api/services/:id  (technician owner)
+router.delete("/:id", verifyToken, verifyTechnician, async (req, res) => {
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).json({ success: false, message: "Service not found" });
+  }
+
+  const collection = getDB().collection("services");
+  const service = await collection.findOne({ _id: new ObjectId(id) });
+
+  if (!service) {
+    return res.status(404).json({ success: false, message: "Service not found" });
+  }
+  if (service.technicianEmail !== req.user.email) {
+    return res
+      .status(403)
+      .json({ success: false, message: "You can only delete your own service" });
+  }
+
+  await collection.deleteOne({ _id: service._id });
+  res.json({ success: true, message: "Service deleted", data: { _id: id } });
+});
+
+
 // GET /api/services/:id
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
