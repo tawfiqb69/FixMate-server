@@ -7,6 +7,7 @@ import servicesRouter from "./routes/services.js";
 import uploadRouter from "./routes/upload.js";
 import adminRouter from "./routes/admin.js";
 import bookingsRouter from "./routes/bookings.js";
+import usersRouter from "./routes/users.js";
 
 
 
@@ -45,6 +46,7 @@ app.use("/api/services", servicesRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/users", usersRouter);
 
 // 404 handler
 app.use((req, res) => {
