@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { getDB } from "../config/db.js";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { verifyCustomer } from "../middleware/verifyRole.js";
+import { verifyCustomer, verifyTechnician } from "../middleware/verifyRole.js";
 
 const router = Router();
 
@@ -163,6 +163,106 @@ router.patch("/:id/cancel", verifyToken, verifyCustomer, async (req, res) => {
     success: true,
     message: "Booking cancelled",
     data: { ...booking, status: "cancelled" },
+  });
+});
+
+
+// Allowed status changes (technician only). Anything else is rejected.
+const TECH_TRANSITIONS = {
+  requested: ["accepted", "rejected"],
+  accepted: ["in-progress"],
+  "in-progress": ["completed"],
+};
+const ALL_STATUSES = [
+  "requested",
+  "accepted",
+  "rejected",
+  "in-progress",
+  "completed",
+  "cancelled",
+];
+
+// GET /api/bookings/technician  (technician only, own jobs, optional ?status=)
+router.get("/technician", verifyToken, verifyTechnician, async (req, res) => {
+  const filter = { technicianEmail: req.user.email };
+  const { status } = req.query;
+  if (status && ALL_STATUSES.includes(status)) {
+    filter.status = status;
+  }
+
+  const bookings = await getDB()
+    .collection("bookings")
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  res.json({ success: true, message: "Requests loaded", data: bookings });
+});
+
+// PATCH /api/bookings/:id/status  (technician only, owner only, valid steps only)
+router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
+  const { id } = req.params;
+  const { status: nextStatus, finalAmount } = req.body || {};
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+  if (!ALL_STATUSES.includes(nextStatus)) {
+    return res.status(400).json({ success: false, message: "Invalid status" });
+  }
+
+  const bookings = getDB().collection("bookings");
+  const booking = await bookings.findOne({ _id: new ObjectId(id) });
+  if (!booking) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  // Only the technician who owns the job
+  if (booking.technicianEmail !== req.user.email) {
+    return res.status(403).json({
+      success: false,
+      message: "You can only update your own jobs",
+    });
+  }
+
+  // Only valid steps
+  const allowed = TECH_TRANSITIONS[booking.status] || [];
+  if (!allowed.includes(nextStatus)) {
+    return res.status(409).json({
+      success: false,
+      message: `Cannot change status from ${booking.status} to ${nextStatus}`,
+    });
+  }
+
+  const update = { status: nextStatus };
+
+  // Completing needs a final amount greater than 0
+  if (nextStatus === "completed") {
+    if (typeof finalAmount !== "number" || !Number.isFinite(finalAmount) || finalAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Final amount must be a number greater than 0",
+      });
+    }
+    update.finalAmount = finalAmount;
+  }
+
+  // Current status is in the filter, so two quick clicks cannot both win
+  const result = await bookings.updateOne(
+    { _id: booking._id, technicianEmail: req.user.email, status: booking.status },
+    { $set: update }
+  );
+  if (result.modifiedCount === 0) {
+    return res.status(409).json({
+      success: false,
+      message: "This job was just updated. Please refresh.",
+    });
+  }
+
+  res.json({
+    success: true,
+    message: "Status updated",
+    data: { ...booking, ...update },
   });
 });
 
