@@ -108,4 +108,63 @@ router.post("/", verifyToken, verifyCustomer, async (req, res) => {
   });
 });
 
+// GET /api/bookings/my  (customer only, own bookings, newest first)
+router.get("/my", verifyToken, verifyCustomer, async (req, res) => {
+  const db = getDB();
+  const bookings = await db
+    .collection("bookings")
+    .find({ customerEmail: req.user.email })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  res.json({ success: true, message: "Bookings loaded", data: bookings });
+});
+
+// PATCH /api/bookings/:id/cancel  (customer only, owner only, requested only)
+router.patch("/:id/cancel", verifyToken, verifyCustomer, async (req, res) => {
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  const db = getDB();
+  const bookings = db.collection("bookings");
+
+  const booking = await bookings.findOne({ _id: new ObjectId(id) });
+  if (!booking) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+  if (booking.customerEmail !== req.user.email) {
+    return res.status(403).json({
+      success: false,
+      message: "You can only cancel your own booking",
+    });
+  }
+  if (booking.status !== "requested") {
+    return res.status(409).json({
+      success: false,
+      message: "Only a requested booking can be cancelled",
+    });
+  }
+
+  // The status is checked again in the filter, so two clicks cannot conflict
+  const result = await bookings.updateOne(
+    { _id: booking._id, customerEmail: req.user.email, status: "requested" },
+    { $set: { status: "cancelled" } }
+  );
+  if (result.modifiedCount === 0) {
+    return res.status(409).json({
+      success: false,
+      message: "Only a requested booking can be cancelled",
+    });
+  }
+
+  res.json({
+    success: true,
+    message: "Booking cancelled",
+    data: { ...booking, status: "cancelled" },
+  });
+});
+
+
 export default router;
