@@ -10,20 +10,22 @@ import bookingsRouter from "./routes/bookings.js";
 import usersRouter from "./routes/users.js";
 import paymentsRouter from "./routes/payments.js";
 import webhooksRouter from "./routes/webhooks.js";
-
-
-
-
+import { connectDB } from "./config/db.js";
 
 const app = express();
 
 // Global middlewares
-app.use(
-  cors({
-    origin: env.CLIENT_URL,
-    credentials: true,
-  })
-);
+app.use(cors({ origin: env.CLIENT_URL, credentials: true, }));
+
+// Connect to MongoDB on the first request (needed on Vercel)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use("/api/webhooks", webhooksRouter);
 app.use(express.json());
