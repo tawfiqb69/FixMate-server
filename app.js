@@ -9,6 +9,7 @@ import adminRouter from "./routes/admin.js";
 import bookingsRouter from "./routes/bookings.js";
 import usersRouter from "./routes/users.js";
 import paymentsRouter from "./routes/payments.js";
+import webhooksRouter from "./routes/webhooks.js";
 
 
 
@@ -24,6 +25,7 @@ app.use(
   })
 );
 
+app.use("/api/webhooks", webhooksRouter);
 app.use(express.json());
 
 // Health check

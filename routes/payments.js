@@ -2,17 +2,11 @@ import { Router } from "express";
 import { getDB } from "../config/db.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { verifyCustomer } from "../middleware/verifyRole.js";
-import Stripe from "stripe";
+import { getStripe } from "../utils/stripe.js";
 import { ObjectId } from "mongodb";
 import { savePaymentFromSession } from "../utils/savePayment.js";
 
-let stripeInstance = null;
-function getStripe() {
-  if (!stripeInstance) {
-    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
-  }
-  return stripeInstance;
-}
+
 
 const router = Router();
 
