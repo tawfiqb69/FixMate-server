@@ -27,12 +27,18 @@ router.patch("/profile", verifyToken, async (req, res) => {
     }
     update.area = area.trim();
   }
-  if (bio !== undefined) {
-    if (typeof bio !== "string" || bio.trim().length > 500) {
-      return res.status(400).json({ success: false, message: "Bio must be 500 characters or less" });
+
+
+  const imageUrl = typeof image === "string" ? image.trim() : "";
+
+  if (imageUrl) {
+    if (!imageUrl.startsWith("https://") || imageUrl.length > 500) {
+      return res.status(400).json({ success: false, message: "Invalid image URL" });
     }
-    update.bio = bio.trim();
+    update.image = imageUrl;
   }
+
+
   if (image !== undefined) {
     if (typeof image !== "string" || !image.startsWith("https://") || image.length > 500) {
       return res.status(400).json({ success: false, message: "Invalid image URL" });
