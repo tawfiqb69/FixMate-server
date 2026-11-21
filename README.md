@@ -6,6 +6,12 @@ FixMate Server is the backend API powering FixMate, a full-stack home appliance 
 
 The API integrates with Better Auth through JWKS-based JWT verification and Stripe for secure payment processing, including webhook-based payment confirmation and idempotency protection.
 
+<p align="center">
+  <a href="#-features">Features</a> ·
+  <a href="#-tech-stack">Tech Stack</a> ·
+  <a href="#-installation--setup">Installation</a>
+</p>
+
 ---
 
 ## 🌐 Live Deployment
@@ -79,29 +85,10 @@ The API integrates with Better Auth through JWKS-based JWT verification and Stri
 The backend enforces the booking workflow to ensure that only valid status transitions are allowed.
 
 ```text
-requested
+requested ──► accepted ──► in-progress ──► completed ──► (pay) ──► paid
     │
-    ├──► rejected
-    │
-    └──► accepted
-             │
-             ├──► cancelled
-             │
-             └──► in progress
-                       │
-                       └──► completed
-                                  │
-                                  ▼
-                            Stripe Checkout
-                                  │
-                                  ▼
-                         Payment Verification
-                                  │
-                                  ▼
-                         Webhook Confirmation
-                                  │
-                                  ▼
-                         Transaction Recorded
+    ├──► rejected   (technician)
+    └──► cancelled  (customer)
 ```
 
 **Important:** Payment is available only after the repair job has been completed.
@@ -143,15 +130,12 @@ requested
 
 ```text
 fixmate-server/
-│
 ├── index.js
-├── routes/
-├── controllers/
-├── middleware/
-├── models/
+├── app.js
 ├── config/
+├── middleware/
+├── routes/
 ├── utils/
-│
 ├── .env.example
 ├── package.json
 └── README.md
@@ -162,6 +146,18 @@ fixmate-server/
 ---
 
 ## ⚙️ Installation & Setup
+
+### 4. Start the Server
+
+Run the following command:
+
+```bash
+node index.js
+```
+
+The API will start on the configured port.
+
+Make sure your `.env` file contains all required environment variables before starting the server.
 
 ### Prerequisites
 
@@ -174,7 +170,7 @@ fixmate-server/
 ### 1. Clone the Repository
 
 ```bash
-git clone YOUR_SERVER_REPOSITORY_URL
+git clone https://github.com/tawfiqb69/FixMate-server.git
 cd fixmate-server
 ```
 
@@ -191,24 +187,14 @@ Create a `.env` file in the project root and configure the required variables.
 Use `.env.example` as the reference for all required environment variables.
 
 ```env
-# Database
-MONGODB_URI=
-
-# Authentication
-BETTER_AUTH_URL=
-
-# Stripe
+PORT=
+DB_URI=
+CLIENT_URL=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-
-# Image Hosting
 IMGBB_API_KEY=
-
-# Application
-PORT=
-CLIENT_URL=
 ```
-
+> `CLIENT_URL` must match the client's `BETTER_AUTH_URL`.
 > Variable names should match the actual `.env.example` file.
 
 ### 4. Start the Development Server
@@ -290,7 +276,7 @@ This project demonstrates practical backend development concepts:
 Full-Stack Web Developer | CSE Student
 
 - GitHub: [@tawfiqb69](https://github.com/tawfiqb69)
-- Portfolio: [Visit Portfolio](YOUR_PORTFOLIO_URL)
+- Portfolio: [Visit Portfolio](https://sm-tawfiq-portfolio.vercel.app)
 - LinkedIn: [SM Tawfiq](https://www.linkedin.com/in/sm-tawfiq/)
 
 ---
