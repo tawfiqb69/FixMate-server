@@ -4,6 +4,7 @@ import { verifyToken } from "../middleware/verifyToken.js";
 import { verifyCustomer } from "../middleware/verifyRole.js";
 import Stripe from "stripe";
 import { ObjectId } from "mongodb";
+import { savePaymentFromSession } from "../utils/savePayment.js";
 
 let stripeInstance = null;
 function getStripe() {
@@ -98,5 +99,39 @@ router.post(
     });
   }
 );
+
+// GET /api/payments/verify?session_id=...
+router.get("/verify", verifyToken, verifyCustomer, async (req, res) => {
+  const { session_id } = req.query;
+  if (!session_id || typeof session_id !== "string") {
+    return res
+      .status(400)
+      .json({ success: false, message: "session_id is required" });
+  }
+
+  let session;
+  try {
+    session = await getStripe().checkout.sessions.retrieve(session_id);
+  } catch {
+    return res
+      .status(404)
+      .json({ success: false, message: "Checkout session not found" });
+  }
+
+  if (session.metadata?.customerEmail !== req.user.email) {
+    return res
+      .status(403)
+      .json({ success: false, message: "This payment is not yours" });
+  }
+
+  const result = await savePaymentFromSession(session);
+  if (!result.ok) {
+    return res
+      .status(result.status)
+      .json({ success: false, message: result.message });
+  }
+
+  res.json({ success: true, message: "Payment verified", data: result.payment });
+});
 
 export default router;
