@@ -8,6 +8,8 @@ import uploadRouter from "./routes/upload.js";
 import adminRouter from "./routes/admin.js";
 import bookingsRouter from "./routes/bookings.js";
 import usersRouter from "./routes/users.js";
+import paymentsRouter from "./routes/payments.js";
+
 
 
 
@@ -47,6 +49,7 @@ app.use("/api/upload", uploadRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/payments", paymentsRouter);
 
 // 404 handler
 app.use((req, res) => {
