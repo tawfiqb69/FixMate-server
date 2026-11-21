@@ -156,4 +156,21 @@ router.get("/bookings", async (req, res) => {
   res.json({ success: true, message: "Bookings loaded", data: bookings });
 });
 
+
+// All payments + total revenue
+router.get("/payments", async (req, res) => {
+  const payments = await getDB()
+    .collection("payments")
+    .find({})
+    .sort({ paidAt: -1 })
+    .toArray();
+  const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  res.json({
+    success: true,
+    message: "Payments loaded",
+    data: payments,
+    totalRevenue,
+  });
+});
+
 export default router;
