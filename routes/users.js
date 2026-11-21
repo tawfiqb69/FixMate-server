@@ -39,13 +39,6 @@ router.patch("/profile", verifyToken, async (req, res) => {
   }
 
 
-  if (image !== undefined) {
-    if (typeof image !== "string" || !image.startsWith("https://") || image.length > 500) {
-      return res.status(400).json({ success: false, message: "Invalid image URL" });
-    }
-    update.image = image;
-  }
-
   // email and role are never read from the body
   update.updatedAt = new Date();
 
