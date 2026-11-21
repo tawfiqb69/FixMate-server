@@ -147,7 +147,7 @@ fixmate-server/
 
 ## ⚙️ Installation & Setup
 
-### 4. Start the Server
+### Start the Server
 
 Run the following command:
 
